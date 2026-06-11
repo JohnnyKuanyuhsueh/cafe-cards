@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学習カード</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #f5f5f0; padding: 20px; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-btn {
+  padding: 8px 18px; border-radius: 20px; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; background: #ddd; color: #666; transition: all 0.2s;
+}
+.tab-btn.active { background: #2c1a0e; color: #fff; }
+.section { display: none; }
+.section.active { display: block; }
+
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 6px; color: #222; }
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.count { font-size: 13px; color: #666; }
+button.reset { font-size: 13px; padding: 5px 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; }
+button.reset:hover { background: #eee; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+.card-wrap { perspective: 800px; height: 160px; cursor: pointer; }
+.card-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s ease; }
+.card-wrap.flipped .card-inner { transform: rotateY(180deg); }
+.card-front, .card-back {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border-radius: 12px; border: 1px solid #ddd; padding: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.card-front { background: #fff; }
+.card-back { background: #f0f0ea; transform: rotateY(180deg); align-items: flex-start; justify-content: flex-start; overflow-y: auto; }
+.card-name { font-size: 15px; font-weight: 600; color: #222; text-align: center; white-space: pre-line; }
+.card-hint { font-size: 11px; color: #aaa; margin-top: 8px; }
+.card-recipe { font-size: 11.5px; color: #444; line-height: 1.7; white-space: pre-wrap; }
+
+.recipe-card {
+  background: #fdf8f2; border-radius: 20px;
+  max-width: 520px; margin: 0 auto 32px; padding: 28px 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.recipe-title { font-size: 22px; font-weight: 700; color: #2c1a0e; margin-bottom: 2px; }
+.recipe-sub { font-size: 11px; color: #b08060; letter-spacing: 2px; margin-bottom: 20px; }
+.section-label { font-size: 11px; font-weight: 700; color: #b08060; letter-spacing: 2px; margin-bottom: 10px; }
+.divider { border: none; border-top: 1.5px solid #e8ddd0; margin: 18px 0; }
+.ingredients-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 14px; }
+.ing-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: #fff; border-radius: 8px; border: 1px solid #ede5d8; }
+.ing-name { font-size: 12px; color: #444; }
+.ing-amount { font-size: 12px; font-weight: 600; color: #8b5e3c; white-space: nowrap; margin-left: 6px; }
+.steps { display: flex; flex-direction: column; gap: 11px; }
+.step { display: flex; gap: 11px; align-items: flex-start; }
+.step-num { min-width: 26px; height: 26px; background: #2c1a0e; color: #fdf8f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+.step-text { font-size: 13px; line-height: 1.75; color: #333; }
+.step-note { display: inline-block; background: #fff3e0; color: #b06020; font-size: 11px; padding: 1px 7px; border-radius: 4px; margin-top: 4px; }
+.sub-title { font-size: 13px; font-weight: 700; color: #2c1a0e; margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid #8b5e3c; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('drinks',this)">☕ ドリンク</button>
+  <button class="tab-btn" onclick="switchTab('raw',this)">🍇 生チーズケーキ</button>
+  <button class="tab-btn" onclick="switchTab('taro',this)">🟣 芋頭チーズケーキ</button>
+  <button class="tab-btn" onclick="switchTab('brownie',this)">🍫 ブラウニー</button>
+</div>
+
+<!-- ドリンク -->
+<div class="section active" id="tab-drinks">
+  <h1>ドリンク学習カード</h1>
+  <div class="bar">
+    <span class="count" id="counter">0 / 23 枚めくった</span>
+    <button class="reset" onclick="resetAll()">すべて表に戻す</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- 生チーズケーキ -->
+<div class="section" id="tab-raw">
+  <div class="recipe-card">
+    <div class="recipe-title">クッキーベース</div>
+    <div class="recipe-sub">7寸型共通</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">バター</span><span class="ing-amount">60g</span></div>
+      <div class="ing-item"><span class="ing-name">クッキー（砕いたもの）</span><span class="ing-amount">120g</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">バターをオーブンで溶かす。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">砕いたクッキーと合わせてよく混ぜる。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">型に入れて平らに押し固める。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text"><strong>160度</strong>のオーブンで<strong>9分</strong>焼き、完全に冷ます。</div></div>
+    </div>
+  </div>
+
+  <div class="recipe-card">
+    <div class="recipe-title">ぶどう生チーズケーキ</div>
+    <div class="recipe-sub">7寸型・レアチーズケーキ</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">クリームチーズ</span><span class="ing-amount">300g</span></div>
+      <div class="ing-item"><span class="ing-name">砂糖</span><span class="ing-amount">40g</span></div>
+      <div class="ing-item"><span class="ing-name">牛乳</span><span class="ing-amount">100g</span></div>
+      <div class="ing-item"><span class="ing-name">ゼラチン</span><span class="ing-amount">3枚</span></div>
+      <div class="ing-item"><span class="ing-name">生クリーム（泡立て済み）</span><span class="ing-amount">150g</span></div>
+      <div class="ing-item"><span class="ing-name">ライチ酒</span><span class="ing-amount">10g</span></div>
+      <div class="ing-item"><span class="ing-name">グリーングレープ</span><span class="ing-amount">適量</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">ゼラチンを氷水でふやかしておく。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">クリームチーズをやわらかくし、砂糖を加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">牛乳をレンジで加熱し、ゼラチンを溶かす。チーズ生地に数回に分けて加え混ぜる。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">ライチ酒と泡立てた生クリームを加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">型に流し入れ、グリーングレープを並べる。</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text">冷蔵庫で<strong>一晩</strong>冷やす。</div></div>
+    </div>
+  </div>
+
+  <div class="recipe-card">
+    <div class="recipe-title">バラとライチの生チーズケーキ</div>
+    <div class="recipe-sub">7寸型・2層レアチーズケーキ</div>
+    <div class="sub-title">🌹 第1層：バラ風味</div>
+    <div class="section-label">材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">クリームチーズ</span><span class="ing-amount">150g</span></div>
+      <div class="ing-item"><span class="ing-name">砂糖</span><span class="ing-amount">20g</span></div>
+      <div class="ing-item"><span class="ing-name">バラシロップ</span><span class="ing-amount">30g</span></div>
+      <div class="ing-item"><span class="ing-name">牛乳＋バラの花びら</span><span class="ing-amount">70g</span></div>
+      <div class="ing-item"><span class="ing-name">ゼラチン</span><span class="ing-amount">1.5枚</span></div>
+      <div class="ing-item"><span class="ing-name">生クリーム（泡立て済み）</span><span class="ing-amount">130g</span></div>
+    </div>
+    <div class="sub-title">🍈 第2層：ライチ風味</div>
+    <div class="section-label">材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">クリームチーズ</span><span class="ing-amount">150g</span></div>
+      <div class="ing-item"><span class="ing-name">砂糖</span><span class="ing-amount">20g</span></div>
+      <div class="ing-item"><span class="ing-name">ライチシロップ</span><span class="ing-amount">25g</span></div>
+      <div class="ing-item" style="flex-direction:column; align-items:flex-start; gap:3px;"><span style="display:flex; justify-content:space-between; width:100%;"><span class="ing-name">ライチ果汁</span><span class="ing-amount">適量</span></span><span style="font-size:10px; color:#999;">むいたライチから出た果汁をすべて加える</span></div>
+      <div class="ing-item"><span class="ing-name">牛乳</span><span class="ing-amount">70g</span></div>
+      <div class="ing-item"><span class="ing-name">ゼラチン</span><span class="ing-amount">1.5枚</span></div>
+      <div class="ing-item"><span class="ing-name">生クリーム（泡立て済み）</span><span class="ing-amount">130g</span></div>
+      <div class="ing-item"><span class="ing-name">ライチ（2周分）</span><span class="ing-amount">適量</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="sub-title" style="margin-top:0">🌹 第1層（バラ）から作る</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">クリームチーズをやわらかくし、砂糖・バラシロップを加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">牛乳にバラの花びらを入れてレンジで加熱。ゼラチンを溶かし、チーズ生地に分次加える。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">食用色素で色を調整し、泡立てた生クリームを加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">型に流し入れ、室温で待機。</div></div>
+    </div>
+    <div class="sub-title">🍈 第2層（ライチ）を作る</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">5</div><div class="step-text">クリームチーズをやわらかくし、砂糖・ライチシロップ・ライチ果汁を加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text">牛乳を加熱しゼラチンを溶かし、チーズ生地に分次加える。</div></div>
+      <div class="step"><div class="step-num">7</div><div class="step-text">泡立てた生クリームを加えて混ぜ、第1層の上に流し込む。</div></div>
+      <div class="step"><div class="step-num">8</div><div class="step-text">ライチを2周分並べ、冷蔵庫で<strong>一晩</strong>冷やす。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 芋頭チーズケーキ -->
+<div class="section" id="tab-taro">
+  <div class="recipe-card">
+    <div class="recipe-title">クッキーベース</div>
+    <div class="recipe-sub">6寸型</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">バター</span><span class="ing-amount">50g</span></div>
+      <div class="ing-item"><span class="ing-name">クッキー（砕いたもの）</span><span class="ing-amount">100g</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">バターをオーブンで溶かす。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">砕いたクッキーと合わせてよく混ぜる。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">型に入れて平らに押し固める。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text"><strong>160度</strong>のオーブンで<strong>9分</strong>焼き、完全に冷ます。</div></div>
+    </div>
+  </div>
+
+  <div class="recipe-card">
+    <div class="recipe-title">タロイモチーズケーキ</div>
+    <div class="recipe-sub">6寸型・ベイクドチーズケーキ</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">クリームチーズ</span><span class="ing-amount">200g</span></div>
+      <div class="ing-item"><span class="ing-name">砂糖</span><span class="ing-amount">35g</span></div>
+      <div class="ing-item"><span class="ing-name">タロイモあん</span><span class="ing-amount">180g</span></div>
+      <div class="ing-item"><span class="ing-name">卵</span><span class="ing-amount">2個</span></div>
+      <div class="ing-item"><span class="ing-name">コーンスターチ</span><span class="ing-amount">13g</span></div>
+      <div class="ing-item"><span class="ing-name">生クリーム（35%）</span><span class="ing-amount">50g</span></div>
+      <div class="ing-item"><span class="ing-name">求肥（1周分）</span><span class="ing-amount">適量</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">クリームチーズをやわらかくし、砂糖を加えて混ぜる。タロイモあんを加えてさらに混ぜる。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">溶き卵を数回に分けて加え、その都度よく混ぜる。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">コーンスターチを加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">生クリームを加えて混ぜ、6寸型に流し入れる。</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">求肥を1周並べる。</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text"><strong>180度</strong>で<strong>40分</strong>焼き、向きを変えてさらに<strong>10分</strong>焼く。</div></div>
+    </div>
+  </div>
+
+  <div class="recipe-card">
+    <div class="recipe-title">タロイモあん</div>
+    <div class="recipe-sub">手作りタロイモペースト</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">生タロイモ（千切り）</span><span class="ing-amount">250g</span></div>
+      <div class="ing-item"><span class="ing-name">タロイモシロップ（市販1袋）</span><span class="ing-amount">1袋</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">生タロイモを千切りにし、600Wで1分30秒レンジ加熱→よく混ぜる。<br><span class="step-note">これを3〜4回繰り返し、完全に火を通す</span></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">タロイモとタロイモシロップをミキサーでなめらかになるまで攪拌する。</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">冷蔵庫で保存。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ブラウニー -->
+<div class="section" id="tab-brownie">
+  <div class="recipe-card">
+    <div class="recipe-title">ブラウニー</div>
+    <div class="recipe-sub">Brownie・150度 26分</div>
+    <div class="section-label">INGREDIENTS 材料</div>
+    <div class="sub-title" style="margin-top:4px">チョコレート</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">チョコチップ 計</span><span class="ing-amount">200g</span></div>
+      <div class="ing-item"><span class="ing-name">　70%</span><span class="ing-amount">140g</span></div>
+      <div class="ing-item"><span class="ing-name">　58%</span><span class="ing-amount">60g</span></div>
+      <div class="ing-item"><span class="ing-name">飾り用（70%＋58% 各10g）</span><span class="ing-amount">20g</span></div>
+    </div>
+    <div class="sub-title">その他</div>
+    <div class="ingredients-grid">
+      <div class="ing-item"><span class="ing-name">バター（室温）</span><span class="ing-amount">250g</span></div>
+      <div class="ing-item"><span class="ing-name">上白糖</span><span class="ing-amount">200g</span></div>
+      <div class="ing-item"><span class="ing-name">卵（溶いておく）</span><span class="ing-amount">250g</span></div>
+      <div class="ing-item"><span class="ing-name">薄力粉</span><span class="ing-amount">120g</span></div>
+      <div class="ing-item"><span class="ing-name">ベーキングパウダー</span><span class="ing-amount">2g</span></div>
+    </div>
+    <hr class="divider">
+    <div class="section-label" style="margin-bottom:14px">STEPS 作り方</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text">オーブンを<strong>150度</strong>に予熱する。</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">チョコレートを湯煎か低ワットのレンジで溶かす。<br><span class="step-note">※レンジの場合：少しずつ加熱し、その都度混ぜる（焦げ防止）</span></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">室温に戻したバターに砂糖を加え、白くなるまで泡立てる。</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">溶き卵をゆっくり少しずつ加えながら混ぜる。</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">溶かしたチョコレートを加えて混ぜる。</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text">薄力粉とベーキングパウダーをふるい入れて混ぜる。</div></div>
+      <div class="step"><div class="step-num">7</div><div class="step-text">クッキングシートを敷いた正方形型に流し入れ、飾り用チョコを散らす。</div></div>
+      <div class="step"><div class="step-num">8</div><div class="step-text"><strong>150度</strong>で<strong>26分</strong>焼く。表面がカリッとしたら完成。</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tab, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+}
+
+const drinks = [
+  { name: "エスプレッソ", recipe: "1番ショット 32g" },
+  { name: "アメリカーノ", recipe: "【アイス】\n氷7〜8個 / 1番ショット / 冷水 120〜130g\n\n【ホット】\n1番ショット / お湯（80℃）220〜230g" },
+  { name: "カフェラテ", recipe: "【アイス】\n氷5〜6個 / 1番ショット / ミルク 150g\n\n【ホット】\n2番ショット / ミルク 195〜200g / ラテアート" },
+  { name: "カプチーノ", recipe: "1番ショット\nグラス（厚手）\nミルク 180g\nラテアート" },
+  { name: "ツァンツァン", recipe: "1番ショット\n冷凍グラス\nミルク 140g\nエスプレッソ 25g（上から注ぐ）" },
+  { name: "竹炭ラテ", recipe: "【アイス】\n氷5〜6個\n1番ショット＋竹炭パウダー 2g\nミルク 150g＋シロップ 5g\n\n【ホット】\n竹炭パウダー 2g / 2番ショット\nミルク 195〜200g / ラテアート" },
+  { name: "キャラメルラテ", recipe: "【アイス】\n氷5〜6個 / 1番ショット\nミルク 140g＋キャラメルシロップ 15g\n\n【ホット】\n2番ショット\nミルク 185g＋キャラメルシロップ 10g\nラテアート" },
+  { name: "黒糖ラテ", recipe: "【アイス】\nフォーム作り→冷蔵庫で休ませる\n氷5〜6個 / 1番ショット\nミルク 120g＋黒糖シロップ 15g\nフォームのせ＋黒糖パウダー\n\n【ホット】\n2番ショット\nミルク 185g＋黒糖シロップ 10g\nラテアート後、黒糖パウダー" },
+  { name: "コールドブリュー", recipe: "氷5〜6個\nコールドブリュー 160g" },
+  { name: "黒糖レモン\nアイスアメリカーノ", recipe: "1番ショット 25g（ピッチャーへ）\n黒糖ソース 25g\nレモンジュース 10g\n氷2個 / 冷水 80g\n→ミックス→氷5〜6個入りグラスへ\n黒糖パウダーをかける" },
+  { name: "冬瓜コールドブリュー", recipe: "氷5〜6個\n冬瓜茶 110g\nコールドブリュー 90g\nホイップクリーム 12g\n黒糖パウダー少々" },
+  { name: "抹茶ラテ", recipe: "【アイス】\n氷7〜8個\nミルク 150g＋シロップ 10g\n抹茶パウダー 3g＋お湯 30gで溶かして加える\n\n【ホット】\n抹茶パウダー 3g＋お湯 25gで溶かす\nミルク 190g＋シロップ 5g スチーム\nラテアート" },
+  { name: "ザクザク\nミルクティー", recipe: "ミルク 80g\n紅茶 120g\n黒糖 12g\n→フォームをしっかり作り\n表面をキャラメリゼ" },
+  { name: "アイスミルクティー", recipe: "フォーム作り→冷蔵庫で休ませる\n氷5〜6個\nミルク 60g / 紅茶 120g / 黒糖 15g\nフォームのせ＋黒糖パウダー" },
+  { name: "ココアオーツミルク", recipe: "【アイス】\n氷5〜6個\nココアミルク 200g\n\n【ホット】\nココアミルク 200g スチーム\nカップへ注ぎ\nココアパウダーをかける" },
+  { name: "アールグレイティー", recipe: "【アイス】\n紅茶 160g＋シロップ 15g\nミキサーで撹拌（氷2個）\n→氷5個入りグラスへ\n\n【ホット】\n茶葉 3g\nお湯（93℃）270g＋シロップ 15g\n5分抽出して濾す" },
+  { name: "焙じ茶ラテ", recipe: "【アイス】\n氷5〜6個 / 黒糖 15g / 牛乳 150ml\nほうじ茶パウダー 3g＋お湯 30ml\n→氷の上に注ぐ\n\n【ホット】\nほうじ茶パウダー 3g＋お湯 12ml\n黒糖 8g / 牛乳 195〜200ml スチーム\nラテアート" },
+  { name: "紅茶コーヒーラテ", recipe: "【ホット】\nエスプレッソ 20ml / 牛乳 90ml\n紅茶 90ml / 黒糖 15g → スチーム\n\n【アイス】\n氷5〜6個\n牛乳 70ml＋黒糖 15g\n紅茶 70ml（層を作る）\nフォーム 9分目\nエスプレッソ 32ml（上から）\n茶葉トッピング" },
+  { name: "オレンジアメリカーノ", recipe: "氷6〜7個\nオレンジジュース 150ml\nシロップ 10g → 混ぜる\nエスプレッソ 32ml（層になるように注ぐ）" },
+  { name: "スパークリング\nアメリカーノ", recipe: "氷6〜7個\n炭酸水 120ml\nシロップ 5g → 混ぜる\nエスプレッソ 32ml\n→ゆっくり注ぐ（重要！）" },
+  { name: "黒糖冬瓜ミルク", recipe: "氷6〜7個\n冬瓜茶 120ml\nミルクフォーム（上まで）\n黒糖パウダー トッピング" },
+  { name: "白桃ウーロン冷茶", recipe: "氷4個\n白桃ウーロン茶 200ml\nシロップ 15g → 混ぜる" },
+  { name: "ココナッツ抹茶", recipe: "【アイス】\n氷5個\nココナッツウォーター 160ml\n抹茶クリームをのせる" },
+];
+
+const grid = document.getElementById('grid');
+const counter = document.getElementById('counter');
+let flipped = new Set();
+
+function updateCounter() {
+  counter.textContent = flipped.size + ' / ' + drinks.length + ' 枚めくった';
+}
+function resetAll() {
+  flipped.clear();
+  document.querySelectorAll('.card-wrap').forEach(w => w.classList.remove('flipped'));
+  updateCounter();
+}
+
+drinks.forEach(function(d, i) {
+  var wrap = document.createElement('div');
+  wrap.className = 'card-wrap';
+  wrap.innerHTML =
+    '<div class="card-inner">' +
+      '<div class="card-front">' +
+        '<div class="card-name">' + d.name + '</div>' +
+        '<div class="card-hint">タップで確認</div>' +
+      '</div>' +
+      '<div class="card-back">' +
+        '<div class="card-recipe">' + d.recipe + '</div>' +
+      '</div>' +
+    '</div>';
+  wrap.addEventListener('click', function() {
+    wrap.classList.toggle('flipped');
+    if (wrap.classList.contains('flipped')) flipped.add(i);
+    else flipped.delete(i);
+    updateCounter();
+  });
+  grid.appendChild(wrap);
+});
+
+updateCounter();
+</script>
+</body>
+</html>
